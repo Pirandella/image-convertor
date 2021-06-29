@@ -22,7 +22,12 @@ struct args *ap_init(int argc, char **argv)
 		case 's':
 			arg->scale = 1;
 			arg->w_scale = atoi(optarg);
-			arg->h_scale = atoi(argv[optind++]);
+			if(!(*argv[optind] == '-')) {
+				arg->h_scale = atoi(argv[optind++]);
+			} else {
+				/* If only one side image size is set. Make image square */
+				arg->h_scale = arg->w_scale;
+			}
 			break;
 		case 'i':
 			arg->input_path = malloc(sizeof(char) * strlen(optarg));
