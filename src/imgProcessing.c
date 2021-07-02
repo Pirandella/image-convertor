@@ -268,15 +268,16 @@ static void write_bin_file(char *path)
 	
 	fprintf(fp, "%d\t%d\t%s\r\n", output_img_width, output_img_height, (flags & 0x01) ? "packed" : "normal");
 	uint8_t p = 1;
+	uint8_t byte = 0;
 	for(uint32_t i = 0; i < (output_img_width * output_img_height); i += p) {
-		uint8_t packed_byte = 0;
 		if(flags & 0x01) {
-			packed_byte = (grayscale_img_data[i] << 4) | (grayscale_img_data[i + 1]);
+			byte = (grayscale_img_data[i] << 4) | (grayscale_img_data[i + 1]);
 			p = 2;
+			fprintf(fp, "0x%02X,%c", byte, (((i + 2) % output_img_width) ? ' ' : '\n'));
 		} else {
-			packed_byte = grayscale_img_data[i];
+			byte = grayscale_img_data[i];
+			fprintf(fp, "0x%02X,%c", byte, (((i + 1) % (output_img_width)) ? ' ' : '\n'));
 		}
-		fprintf(fp, "0x%02X,%c", packed_byte, ((i % (output_img_width)) ? ' ' : '\n'));
 	}
 
 	fclose(fp);
