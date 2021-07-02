@@ -15,7 +15,7 @@ static char *grayscale_img_data;
 #define MIN(a, b) ((a < b) ? a : b)
 
 static void write_png_file(char *path);
-static void write_bin_file(char *path);
+static void write_bin_ascii_file(char *path);
 
 static void convert_to_grayscale(png_byte **img, uint32_t img_width, uint32_t img_height, uint8_t bit_depth)
 {       
@@ -96,23 +96,23 @@ void ip_read(char *path)
 	/* open file and test for it being a png */
 	FILE *fp = fopen(path, "rb");
 	if(!fp)
-		abort_("[read_png_file] File %s could not be opened for reading", path);
+		abort_("[ip_read] File %s could not be opened for reading", path);
 	fread(header, 1, 8, fp);
 	if(png_sig_cmp((png_const_bytep)header, 0, 8))
-		abort_("[read_png_file] File %s is not recognized as a PNG file", path);
+		abort_("[ip_read] File %s is not recognized as a PNG file", path);
 
 	/* initialize stuff */
 	png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 
 	if(!png_ptr)
-		abort_("[read_png_file] png_create_read_struct failed");
+		abort_("[ip_read] png_create_read_struct failed");
 
 	png_infop info_ptr = png_create_info_struct(png_ptr);
 	if(!info_ptr)
-		abort_("[read_png_file] png_create_info_struct failed");
+		abort_("[ip_read] png_create_info_struct failed");
 
 	if(setjmp(png_jmpbuf(png_ptr)))
-		abort_("[read_png_file] Error during init_io");
+		abort_("[ip_read] Error during init_io");
 
 	png_init_io(png_ptr, fp);
 	png_set_sig_bytes(png_ptr, 8);
@@ -130,16 +130,16 @@ void ip_read(char *path)
 	png_read_update_info(png_ptr, info_ptr);
 
 	if (png_get_color_type(png_ptr, info_ptr) == PNG_COLOR_TYPE_RGB)
-		abort_("[process_file] input file is PNG_COLOR_TYPE_RGB but must be PNG_COLOR_TYPE_RGBA "
+		abort_("[ip_read] input file is PNG_COLOR_TYPE_RGB but must be PNG_COLOR_TYPE_RGBA "
 				"(lacks the alpha channel)");
 
 	if (png_get_color_type(png_ptr, info_ptr) != PNG_COLOR_TYPE_RGBA)
-		abort_("[process_file] color_type of input file must be PNG_COLOR_TYPE_RGBA (%d) (is %d)",
+		abort_("[ip_read] color_type of input file must be PNG_COLOR_TYPE_RGBA (%d) (is %d)",
 				PNG_COLOR_TYPE_RGBA, png_get_color_type(png_ptr, info_ptr));
 
 	/* read file */
 	if(setjmp(png_jmpbuf(png_ptr)))
-		abort_("[read_png_file] Error during read_image");
+		abort_("[ip_read] Error during read_image");
 
 	/* Allocate memory for input and output image data */
 	input_img_data = malloc(sizeof(png_bytep) * input_img_height);
@@ -190,7 +190,7 @@ void ip_write(char *path)
 	}
 
 	write_png_file(png_path);
-	write_bin_file(path);
+	write_bin_ascii_file(path);
 }
 
 void ip_deinit()
@@ -217,33 +217,33 @@ static void write_png_file(char *path)
 	/* create file */
 	FILE *fp = fopen(path, "wb");
 	if(!fp)
-		abort_("[write_rescaled_png_file] File %s could not be opened for writing", path);
+		abort_("[write_png_file] File %s could not be opened for writing", path);
 
 	png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 	if(!png_ptr)
-		abort_("[write_rescaled_png_file] Failed to create write struct");
+		abort_("[write_png_file] Failed to create write struct");
 			
 	info_ptr = png_create_info_struct(png_ptr);
 	if(!info_ptr) {
 		png_destroy_write_struct(&png_ptr, (png_infopp)NULL);
-		abort_("[write_rescaled_png_file] Failed to create info structure");
+		abort_("[write_png_file] Failed to create info structure");
 	}
 
 	if(setjmp(png_jmpbuf(png_ptr)))
-		abort_("[write_rescaled_png_file] Error during info_io_s");
+		abort_("[write_png_file] Error during info_io_s");
 	
 	png_init_io(png_ptr, fp);
 
 	/* write header */
 	if(setjmp(png_jmpbuf(png_ptr)))
-		abort_("[write_rescaled_png_file] Error during writing header");
+		abort_("[write_png_file] Error during writing header");
 
 	png_set_IHDR(png_ptr, info_ptr, output_img_width, output_img_height, 8, PNG_COLOR_TYPE_RGB_ALPHA, PNG_INTERLACE_NONE,
 					PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
 	png_write_info(png_ptr, info_ptr);
 	/* write bytes */
 	if(setjmp(png_jmpbuf(png_ptr)))
-		abort_("[write_rescaled_png_file] Error during writing bytes");
+		abort_("[write_png_file] Error during writing bytes");
 
 	if(flags & 0x02) {
 		png_write_image(png_ptr, output_img_data);
@@ -253,18 +253,18 @@ static void write_png_file(char *path)
 
 	/* end write */
 	if(setjmp(png_jmpbuf(png_ptr)))
-		abort_("[write_rescaled_png_file] Error during end of write");
+		abort_("[write_png_file] Error during end of write");
 
 	png_write_end(png_ptr, NULL);
 
 	fclose(fp);
 }
 
-static void write_bin_file(char *path)
+static void write_bin_ascii_file(char *path)
 {
 	FILE *fp = fopen(path, "w");
 	if(!fp)
-		abort_("[write_bin_file] File %s could not be opened for writing", path);
+		abort_("[write_bin_ascii_file] File %s could not be opened for writing", path);
 	
 	fprintf(fp, "%d\t%d\t%s\r\n", output_img_width, output_img_height, (flags & 0x01) ? "packed" : "normal");
 	uint8_t p = 1;
