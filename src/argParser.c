@@ -9,10 +9,13 @@ struct args *ap_init(int argc, char **argv)
 	arg = malloc(sizeof(struct args));
 	int opt;
 
-	while((opt = getopt(argc, argv, "phg:s:i:o:")) != -1) {
+	while((opt = getopt(argc, argv, "pvhg:s:i:o:")) != -1) {
 		switch(opt) {
 		case 'p':
 			arg->packed = 1;
+			break;
+		case 'v':
+			arg->verbose = 1;
 			break;
 		case 'g':
 			arg->n_shades = atoi(optarg);
@@ -25,7 +28,7 @@ struct args *ap_init(int argc, char **argv)
 			if(!(*argv[optind] == '-')) {
 				arg->h_scale = atoi(argv[optind++]);
 			} else {
-				/* If only one side image size is set. Make image square */
+				/* If only one side of image size is set. Make image square */
 				arg->h_scale = arg->w_scale;
 			}
 			break;
@@ -44,9 +47,14 @@ struct args *ap_init(int argc, char **argv)
 		}
 	}
 
-	/* Check existence required arguments */
-	if(arg->input_path == NULL || arg->output_path == NULL) {
-		printf("Path to input file and path to output file is required! Use -h to get usage info\n");
+	/* Check if input file exists */
+	if(arg->input_path == NULL) {
+		printf("Path to input file is required! Use -h to get usage info\n");
+		exit(EXIT_FAILURE);
+	}
+	/* Check if output file path is specified */
+	if(arg->output_path == NULL) {
+		printf("Path to output file is required! Use -h to get usage info\n");
 		exit(EXIT_FAILURE);
 	}
 	/* Check if input file exist */
@@ -75,5 +83,6 @@ static void print_help(void)
 	-g : Number of shades of gray\n\
 	-s : Image scale [width height]\n\
 	-p : Pack two pixels in one byte (only if gray <= 16)\n\
+	-v : Save converted png image\n\
 	-h : Help");
 }

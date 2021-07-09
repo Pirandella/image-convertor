@@ -22,6 +22,7 @@ struct args {
 	uint16_t w_scale;
 	uint16_t h_scale;
 	uint8_t packed;
+	uint8_t verbose;
 	uint8_t scale;
 	char *input_path;
 	char *output_path;

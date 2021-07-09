@@ -72,7 +72,7 @@ static void abort_(const char *s, ...)
 	abort();
 }
 
-void ip_init(uint8_t f_pack, uint8_t f_scale, uint16_t img_w, uint16_t img_h, uint16_t n_shades)
+void ip_init(uint8_t f_pack, uint8_t f_verb, uint8_t f_scale, uint16_t img_w, uint16_t img_h, uint16_t n_shades)
 {
 	if(f_pack) {
 		flags |= 1;
@@ -81,6 +81,9 @@ void ip_init(uint8_t f_pack, uint8_t f_scale, uint16_t img_w, uint16_t img_h, ui
 		flags |= 2;
 		output_img_width = img_w;
 		output_img_height = img_h;
+	}
+	if(f_verb) {
+		flags |= 4;
 	}
 	if(n_shades == 0) {
 		num_grayscale = 16;
@@ -173,23 +176,25 @@ void ip_process()
 
 void ip_write(char *path)
 {
-	char *png_path = malloc(sizeof(char) * strlen(path) + 5);
-	strcpy(png_path, path);
-
-	for(uint16_t i = strlen(path); i > 0; i--) {
-		if(path[i] == '.') {
-			strcpy(&png_path[i], ".png");
-			break;
-		} else if(path[i] == '/') {
-			strcat(png_path, ".png");
-			break;
-		} else if(i == 1) {
-			strcat(png_path, ".png");
-			break;
+	if(flags & 0x04) {
+		char *png_path = malloc(sizeof(char) * strlen(path) + 5);
+		strcpy(png_path, path);
+		
+		for(uint16_t i = strlen(path); i > 0; i--) {
+			if(path[i] == '.') {
+				strcpy(&png_path[i], ".png");
+				break;
+			} else if(path[i] == '/') {
+				strcat(png_path, ".png");
+				break;
+			} else if(i == 1) {
+				strcat(png_path, ".png");
+				break;
+			}
 		}
+		write_png_file(png_path);
 	}
-
-	write_png_file(png_path);
+	
 	write_bin_ascii_file(path);
 }
 
