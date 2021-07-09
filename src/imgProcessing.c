@@ -72,23 +72,23 @@ static void abort_(const char *s, ...)
 	abort();
 }
 
-void ip_init(uint8_t f_pack, uint8_t f_verb, uint8_t f_scale, uint16_t img_w, uint16_t img_h, uint16_t n_shades)
+void ip_init(struct args arg)
 {
-	if(f_pack) {
+	if(arg.flags & ARG_PACKED) {
 		flags |= 1;
 	}
-	if(f_scale) {
+	if(arg.flags & ARG_SCALE) {
 		flags |= 2;
-		output_img_width = img_w;
-		output_img_height = img_h;
+		output_img_width = arg.w_scale;
+		output_img_height = arg.h_scale;
 	}
-	if(f_verb) {
+	if(arg.flags & ARG_VERBOSE) {
 		flags |= 4;
 	}
-	if(n_shades == 0) {
+	if(arg.n_shades == 0) {
 		num_grayscale = 16;
 	} else {
-		num_grayscale = n_shades;
+		num_grayscale = arg.n_shades;
 	}
 }
 

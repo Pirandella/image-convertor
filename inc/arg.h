@@ -12,13 +12,15 @@
 	-h : Help
  */
 
+#define ARG_PACKED	1
+#define ARG_SCALE	2
+#define ARG_VERBOSE	4
+
 struct args {
 	uint16_t n_shades;
 	uint16_t w_scale;
 	uint16_t h_scale;
-	uint8_t packed;
-	uint8_t verbose;
-	uint8_t scale;
+	uint16_t flags;
 	char *input_path;
 	char *output_path;
 };

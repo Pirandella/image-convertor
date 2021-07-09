@@ -12,10 +12,10 @@ struct args *ap_init(int argc, char **argv)
 	while((opt = getopt(argc, argv, "pvhg:s:i:o:")) != -1) {
 		switch(opt) {
 		case 'p':
-			arg->packed = 1;
+			arg->flags |= ARG_PACKED;
 			break;
 		case 'v':
-			arg->verbose = 1;
+			arg->flags |= ARG_VERBOSE;
 			break;
 		case 'g':
 			arg->n_shades = atoi(optarg);
@@ -23,7 +23,7 @@ struct args *ap_init(int argc, char **argv)
 				arg->n_shades = 2;
 			break;
 		case 's':
-			arg->scale = 1;
+			arg->flags |= ARG_SCALE;
 			arg->w_scale = atoi(optarg);
 			if(!(*argv[optind] == '-')) {
 				arg->h_scale = atoi(argv[optind++]);

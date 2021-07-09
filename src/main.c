@@ -7,7 +7,7 @@ int main(int argc, char **argv)
 {
 	struct args *arg = ap_init(argc, argv);
 
-	ip_init(arg->packed, arg->verbose, arg->scale, arg->w_scale, arg->h_scale, arg->n_shades);
+	ip_init(*arg);
 	ip_read(arg->input_path);
 	ip_process();
 	ip_write(arg->output_path);
