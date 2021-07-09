@@ -6,7 +6,7 @@ ODIR := ./obj
 SDIR := ./src
 IDIR := ./inc
 
-_DEPS := argParser.h imgProcessing.h
+_DEPS := argParser.h imgProcessing.h arg.h
 DEPS := $(patsubst %,$(IDIR)/%,$(_DEPS))
 
 _OBJ := main.o argParser.o imgProcessing.o
