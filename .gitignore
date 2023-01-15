@@ -51,5 +51,9 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
-#Executable
+# Misc
+*.png
+*.txt
+
+# Executable
 imgConv

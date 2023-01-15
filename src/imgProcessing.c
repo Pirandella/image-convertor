@@ -2,6 +2,7 @@
 
 static uint8_t flags = 0;
 static uint16_t num_grayscale;
+static uint8_t bits_per_pixel;
 
 static uint16_t input_img_width;
 static uint16_t input_img_height;
@@ -19,33 +20,33 @@ static void write_bin_ascii_file(char *path);
 
 static void convert_to_grayscale(png_byte **img, uint32_t img_width, uint32_t img_height, uint8_t bit_depth)
 {       
-        uint8_t conversion_factor = 255 / (bit_depth - 1);
-        
-        for (uint32_t y = 0; y < img_height; y++) {
-                png_byte *row = img[y];
-                for (uint32_t x = 0; x < img_width; x++) {
-                        png_byte *pixel = &(row[x * 4]);
-                        uint8_t avg_color = (uint8_t)(pixel[0] * 0.299f) + (uint8_t)(pixel[1] * 0.587f) + (uint8_t)(pixel[2] * 0.114f);
-                        uint8_t grayscale = (uint8_t)((avg_color / conversion_factor) + 0.5f) * conversion_factor;
-                        pixel[0] = grayscale;
-                        pixel[1] = grayscale;
-                        pixel[2] = grayscale;
-                }
-        } 
+	uint8_t conversion_factor = 255 / (bit_depth - 1);
+	
+	for (uint32_t y = 0; y < img_height; y++) {
+		png_byte *row = img[y];
+		for (uint32_t x = 0; x < img_width; x++) {
+			png_byte *pixel = &(row[x * bits_per_pixel]);
+			uint8_t avg_color = (uint8_t)(pixel[0] * 0.299f) + (uint8_t)(pixel[1] * 0.587f) + (uint8_t)(pixel[2] * 0.114f);
+			uint8_t grayscale = (uint8_t)((avg_color / conversion_factor) + 0.5f) * conversion_factor;
+			pixel[0] = grayscale;
+			pixel[1] = grayscale;
+			pixel[2] = grayscale;
+		}
+	} 
 }
 
 static void rescale_image(png_byte **img, uint32_t img_w1, uint32_t img_h1, png_byte **out, uint32_t img_w2, uint32_t img_h2)
 {
 	/* Nearest Neighbor Image Scaling */
 	for(uint32_t x = 0; x < img_w2; x++) {
-			for(uint32_t y = 0; y < img_h2; y++) {
-				int src_x = round((double)x / (double)img_w2 * (double)img_w1);
-				int src_y = round((double)y / (double)img_h2 * (double)img_h1);
-				src_x = MIN(src_x, img_w1 - 1);
-				src_y = MIN(src_y, img_h1 - 1);
+		for(uint32_t y = 0; y < img_h2; y++) {
+			int src_x = round((double)x / (double)img_w2 * (double)img_w1);
+			int src_y = round((double)y / (double)img_h2 * (double)img_h1);
+			src_x = MIN(src_x, img_w1 - 1);
+			src_y = MIN(src_y, img_h1 - 1);
 
-				memcpy(&out[y][x * 4], &img[src_y][src_x * 4], 4);
-			}
+			memcpy(&out[y][x * 4], &img[src_y][src_x * 4], 4);
+		}
 	}
 }
 
@@ -132,13 +133,11 @@ void ip_read(char *path)
 	png_set_interlace_handling(png_ptr);
 	png_read_update_info(png_ptr, info_ptr);
 
-	if (png_get_color_type(png_ptr, info_ptr) == PNG_COLOR_TYPE_RGB)
-		abort_("[ip_read] input file is PNG_COLOR_TYPE_RGB but must be PNG_COLOR_TYPE_RGBA "
-				"(lacks the alpha channel)");
-
-	if (png_get_color_type(png_ptr, info_ptr) != PNG_COLOR_TYPE_RGBA)
-		abort_("[ip_read] color_type of input file must be PNG_COLOR_TYPE_RGBA (%d) (is %d)",
-				PNG_COLOR_TYPE_RGBA, png_get_color_type(png_ptr, info_ptr));
+	if (png_get_color_type(png_ptr, info_ptr) == PNG_COLOR_TYPE_RGBA) {
+		bits_per_pixel = 4;
+	} else {
+		bits_per_pixel = 3;
+	}
 
 	/* read file */
 	if(setjmp(png_jmpbuf(png_ptr)))
@@ -147,11 +146,11 @@ void ip_read(char *path)
 	/* Allocate memory for input and output image data */
 	input_img_data = malloc(sizeof(png_bytep) * input_img_height);
 	for(int i = 0; i < input_img_height; i++)
-		input_img_data[i] = malloc(input_img_width * 4);
+		input_img_data[i] = malloc(input_img_width * bits_per_pixel);
 
 	output_img_data = malloc(sizeof(png_bytep) * output_img_height);
 	for(int i = 0; i < output_img_height; i++)
-		output_img_data[i] = malloc(output_img_width * 4);
+		output_img_data[i] = malloc(output_img_width * bits_per_pixel);
 
 	grayscale_img_data = malloc(sizeof(uint8_t) * (output_img_height * output_img_width));
 
@@ -243,8 +242,15 @@ static void write_png_file(char *path)
 	if(setjmp(png_jmpbuf(png_ptr)))
 		abort_("[write_png_file] Error during writing header");
 
-	png_set_IHDR(png_ptr, info_ptr, output_img_width, output_img_height, 8, PNG_COLOR_TYPE_RGB_ALPHA, PNG_INTERLACE_NONE,
-					PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
+	uint8_t color_type;
+	if (bits_per_pixel == 4) {
+		color_type = PNG_COLOR_TYPE_RGBA;
+	} else {
+		color_type = PNG_COLOR_TYPE_RGB;
+	}
+
+	png_set_IHDR(png_ptr, info_ptr, output_img_width, output_img_height, 8, color_type, PNG_INTERLACE_NONE,
+					PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
 	png_write_info(png_ptr, info_ptr);
 	/* write bytes */
 	if(setjmp(png_jmpbuf(png_ptr)))
