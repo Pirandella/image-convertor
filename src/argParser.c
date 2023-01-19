@@ -9,13 +9,16 @@ struct args *ap_init(int argc, char **argv)
 	arg = malloc(sizeof(struct args));
 	int opt;
 
-	while((opt = getopt(argc, argv, "pvhg:s:i:o:")) != -1) {
+	while((opt = getopt(argc, argv, "pvdhg:s:i:o:")) != -1) {
 		switch(opt) {
 		case 'p':
 			arg->flags |= ARG_PACKED;
 			break;
 		case 'v':
 			arg->flags |= ARG_VERBOSE;
+			break;
+		case 'd':
+			arg->flags |= ARG_DITHERING;
 			break;
 		case 'g':
 			arg->n_shades = atoi(optarg);
@@ -83,6 +86,7 @@ static void print_help(void)
 	-g : Number of shades of gray\n\
 	-s : Image scale [width height]\n\
 	-p : Pack two pixels in one byte (only if gray <= 16)\n\
+	-d : Apply dithering to the image\n\
 	-v : Save converted png image\n\
 	-h : Help");
 }

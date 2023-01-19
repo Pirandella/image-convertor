@@ -23,9 +23,8 @@ static void convert_to_grayscale(png_byte **img, uint32_t img_width, uint32_t im
 	uint8_t conversion_factor = 255 / (bit_depth - 1);
 	
 	for (uint32_t y = 0; y < img_height; y++) {
-		png_byte *row = img[y];
 		for (uint32_t x = 0; x < img_width; x++) {
-			png_byte *pixel = &(row[x * bits_per_pixel]);
+			png_byte *pixel = &img[y][x * bits_per_pixel];
 			uint8_t avg_color = (uint8_t)(pixel[0] * 0.299f) + (uint8_t)(pixel[1] * 0.587f) + (uint8_t)(pixel[2] * 0.114f);
 			uint8_t grayscale = (uint8_t)((avg_color / conversion_factor) + 0.5f) * conversion_factor;
 			pixel[0] = grayscale;
@@ -33,6 +32,47 @@ static void convert_to_grayscale(png_byte **img, uint32_t img_width, uint32_t im
 			pixel[2] = grayscale;
 		}
 	} 
+}
+
+static void dithering(png_byte **img, uint32_t img_width, uint32_t img_height)
+{
+	for (uint32_t y = 0; y < img_height; y++) {
+		for (uint32_t x = 0; x < img_width; x++) {
+			png_byte *pixel = &img[y][x * bits_per_pixel];
+			uint8_t qpixel = pixel[0] >= 128 ? 255 : 0;
+
+			int32_t error = (int32_t)roundf((float)(pixel[0] - qpixel) * 0.605f);
+
+			pixel[0] = qpixel;
+			pixel[1] = qpixel;
+			pixel[2] = qpixel;
+
+			pixel = &img[y][(x + 1) * bits_per_pixel];
+			pixel[0] += (uint8_t)((float)error * (7.0f / 16.0f));
+			pixel[1] = pixel[0];
+			pixel[2] = pixel[0];
+	
+			if (y != img_height - 1) {
+				if (x != 0) {
+					pixel = &img[y + 1][(x - 1) * bits_per_pixel];
+					pixel[0] += (uint8_t)((float)error * (3.0f / 16.0f));
+					pixel[1] = pixel[0];
+					pixel[2] = pixel[0];
+				}
+	
+				pixel = &img[y + 1][x * bits_per_pixel];
+				pixel[0] += (uint8_t)((float)error * (5.0f / 16.0f));
+				pixel[1] = pixel[0];
+				pixel[2] = pixel[0];
+	
+				pixel = &img[y + 1][(x + 1) * bits_per_pixel];
+				pixel[0] += (uint8_t)((float)error * (1.0f / 16.0f));
+				pixel[1] = pixel[0];
+				pixel[2] = pixel[0];
+			}
+			
+		}
+	}
 }
 
 static void rescale_image(png_byte **img, uint32_t img_w1, uint32_t img_h1, png_byte **out, uint32_t img_w2, uint32_t img_h2)
@@ -45,7 +85,7 @@ static void rescale_image(png_byte **img, uint32_t img_w1, uint32_t img_h1, png_
 			src_x = MIN(src_x, img_w1 - 1);
 			src_y = MIN(src_y, img_h1 - 1);
 
-			memcpy(&out[y][x * 4], &img[src_y][src_x * 4], 4);
+			memcpy(&out[y][x * bits_per_pixel], &img[src_y][src_x * bits_per_pixel], 4);
 		}
 	}
 }
@@ -75,16 +115,10 @@ static void abort_(const char *s, ...)
 
 void ip_init(struct args arg)
 {
-	if(arg.flags & ARG_PACKED) {
-		flags |= 1;
-	}
-	if(arg.flags & ARG_SCALE) {
-		flags |= 2;
+	flags = arg.flags;
+	if(flags & ARG_SCALE) {
 		output_img_width = arg.w_scale;
 		output_img_height = arg.h_scale;
-	}
-	if(arg.flags & ARG_VERBOSE) {
-		flags |= 4;
 	}
 	if(arg.n_shades == 0) {
 		num_grayscale = 16;
@@ -125,7 +159,7 @@ void ip_read(char *path)
 
 	input_img_width = png_get_image_width(png_ptr, info_ptr);
 	input_img_height = png_get_image_height(png_ptr, info_ptr);
-	if(!(flags & 0x02)) {
+	if(!(flags & ARG_SCALE)) {
 		output_img_width = input_img_width;
 		output_img_height = input_img_height;
 	}
@@ -165,17 +199,21 @@ void ip_process()
 	png_byte **img = input_img_data;
 
 	convert_to_grayscale(img, input_img_width, input_img_height, num_grayscale);
-	if(flags & 0x02) {
+	if(flags & ARG_SCALE) {
 		rescale_image(img, input_img_width, input_img_height,
 			output_img_data, output_img_width, output_img_height);
 		img = output_img_data;
 	}
+	if (flags & ARG_DITHERING) {
+		dithering(img, output_img_width, output_img_height);
+	}
+
 	convert_grayscale_to_byte(img, output_img_width, output_img_height);
 }
 
 void ip_write(char *path)
 {
-	if(flags & 0x04) {
+	if(flags & ARG_VERBOSE) {
 		char *png_path = malloc(sizeof(char) * strlen(path) + 5);
 		strcpy(png_path, path);
 		
@@ -256,7 +294,7 @@ static void write_png_file(char *path)
 	if(setjmp(png_jmpbuf(png_ptr)))
 		abort_("[write_png_file] Error during writing bytes");
 
-	if(flags & 0x02) {
+	if(flags & ARG_SCALE) {
 		png_write_image(png_ptr, output_img_data);
 	} else {
 		png_write_image(png_ptr, input_img_data);
@@ -277,11 +315,11 @@ static void write_bin_ascii_file(char *path)
 	if(!fp)
 		abort_("[write_bin_ascii_file] File %s could not be opened for writing", path);
 	
-	fprintf(fp, "%d\t%d\t%s\r\n", output_img_width, output_img_height, (flags & 0x01) ? "packed" : "normal");
+	fprintf(fp, "%d\t%d\t%s\r\n", output_img_width, output_img_height, (flags & ARG_PACKED) ? "packed" : "normal");
 	uint8_t p = 1;
 	uint8_t byte = 0;
 	for(uint32_t i = 0; i < (output_img_width * output_img_height); i += p) {
-		if(flags & 0x01) {
+		if(flags & ARG_PACKED) {
 			byte = (grayscale_img_data[i] << 4) | (grayscale_img_data[i + 1]);
 			p = 2;
 			fprintf(fp, "0x%02X,%c", byte, (((i + 2) % output_img_width) ? ' ' : '\n'));
