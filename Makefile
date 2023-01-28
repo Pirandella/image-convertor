@@ -1,6 +1,6 @@
 CC := gcc
 TARGET := imgConv
-CFLAGS = -std=c99 -I $(IDIR) -Wall -lpng -lm
+CFLAGS = -std=c99 -I $(IDIR) -Wall -Wextra -lpng -lm -g3
 
 ODIR := ./obj
 SDIR := ./src
@@ -18,7 +18,10 @@ $(ODIR)/%.o: $(SDIR)/%.c $(DEPS)
 $(TARGET): $(OBJ)
 	$(CC) -o $(TARGET) $^ $(CFLAGS)
 
-.PHONY: clean
+.PHONY: mem clean
 
+mem:
+	valgrind --tool=memcheck --leak-check=full --show-reachable=yes --track-origins=yes --num-callers=20 --track-fds=yes ./$(TARGET) -i ./lena_std.png -o ./out.txt -g 255 -vd -s 320 320
+	
 clean:
 	rm -f $(ODIR)/*.o $(TARGET)

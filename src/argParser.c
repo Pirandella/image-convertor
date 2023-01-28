@@ -7,6 +7,7 @@ static void print_help(void);
 struct args *ap_init(int argc, char **argv)
 {
 	arg = malloc(sizeof(struct args));
+	arg->flags = 0;
 	int opt;
 
 	while((opt = getopt(argc, argv, "pvdhg:s:i:o:")) != -1) {
@@ -36,11 +37,11 @@ struct args *ap_init(int argc, char **argv)
 			}
 			break;
 		case 'i':
-			arg->input_path = malloc(sizeof(char) * strlen(optarg));
+			arg->input_path = malloc(sizeof(char) * strlen(optarg) + 1);
 			strcpy(arg->input_path, optarg);
 			break;
 		case 'o':
-			arg->output_path = malloc(sizeof(char) * strlen(optarg));
+			arg->output_path = malloc(sizeof(char) * strlen(optarg) + 1);
 			strcpy(arg->output_path, optarg);
 			break;
 		case 'h':

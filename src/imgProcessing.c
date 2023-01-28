@@ -47,12 +47,14 @@ static void dithering(png_byte **img, uint32_t img_width, uint32_t img_height)
 			pixel[1] = qpixel;
 			pixel[2] = qpixel;
 
-			pixel = &img[y][(x + 1) * bits_per_pixel];
-			pixel[0] += (uint8_t)((float)error * (7.0f / 16.0f));
-			pixel[1] = pixel[0];
-			pixel[2] = pixel[0];
+			if (x != (img_width - 1)) {
+				pixel = &img[y][(x + 1) * bits_per_pixel];
+				pixel[0] += (uint8_t)((float)error * (7.0f / 16.0f));
+				pixel[1] = pixel[0];
+				pixel[2] = pixel[0];
+			}
 	
-			if (y != img_height - 1) {
+			if (y != (img_height - 1)) {
 				if (x != 0) {
 					pixel = &img[y + 1][(x - 1) * bits_per_pixel];
 					pixel[0] += (uint8_t)((float)error * (3.0f / 16.0f));
@@ -65,10 +67,12 @@ static void dithering(png_byte **img, uint32_t img_width, uint32_t img_height)
 				pixel[1] = pixel[0];
 				pixel[2] = pixel[0];
 	
-				pixel = &img[y + 1][(x + 1) * bits_per_pixel];
-				pixel[0] += (uint8_t)((float)error * (1.0f / 16.0f));
-				pixel[1] = pixel[0];
-				pixel[2] = pixel[0];
+				if (x != (img_width - 1)) {
+					pixel = &img[y + 1][(x + 1) * bits_per_pixel];
+					pixel[0] += (uint8_t)((float)error * (1.0f / 16.0f));
+					pixel[1] = pixel[0];
+					pixel[2] = pixel[0];
+				}
 			}
 			
 		}
@@ -80,12 +84,12 @@ static void rescale_image(png_byte **img, uint32_t img_w1, uint32_t img_h1, png_
 	/* Nearest Neighbor Image Scaling */
 	for(uint32_t x = 0; x < img_w2; x++) {
 		for(uint32_t y = 0; y < img_h2; y++) {
-			int src_x = round((double)x / (double)img_w2 * (double)img_w1);
-			int src_y = round((double)y / (double)img_h2 * (double)img_h1);
+			uint32_t src_x = round((double)x / (double)img_w2 * (double)img_w1);
+			uint32_t src_y = round((double)y / (double)img_h2 * (double)img_h1);
 			src_x = MIN(src_x, img_w1 - 1);
 			src_y = MIN(src_y, img_h1 - 1);
 
-			memcpy(&out[y][x * bits_per_pixel], &img[src_y][src_x * bits_per_pixel], 4);
+			memcpy(&out[y][x * bits_per_pixel], &img[src_y][src_x * bits_per_pixel], bits_per_pixel);
 		}
 	}
 }
@@ -95,10 +99,9 @@ static void convert_grayscale_to_byte(png_byte **img, uint32_t w, uint32_t h)
 	uint32_t idx = 0;
 
 	for(uint32_t y = 0; y < w; y++) {
-		png_byte *row = img[y];
 		for(uint32_t x = 0; x < h; x++) {
-			png_byte *pixel = &(row[x * 4]);
-			grayscale_img_data[idx++] = (uint8_t)round(pixel[0] * num_grayscale / UINT8_MAX);
+			png_byte *pixel = &img[y][x * bits_per_pixel];
+			grayscale_img_data[idx++] = (uint8_t)roundf((float)(pixel[0] * num_grayscale / UINT8_MAX));
 		}
 	}
 }
@@ -191,6 +194,8 @@ void ip_read(char *path)
 	/* Read input image data */
 	png_read_image(png_ptr, input_img_data);
 
+	/* Cleanup */
+	png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
 	fclose(fp);
 }
 
@@ -230,6 +235,7 @@ void ip_write(char *path)
 			}
 		}
 		write_png_file(png_path);
+		free(png_path);
 	}
 	
 	write_bin_ascii_file(path);
@@ -305,7 +311,8 @@ static void write_png_file(char *path)
 		abort_("[write_png_file] Error during end of write");
 
 	png_write_end(png_ptr, NULL);
-
+	
+	png_destroy_write_struct(&png_ptr, &info_ptr);
 	fclose(fp);
 }
 
