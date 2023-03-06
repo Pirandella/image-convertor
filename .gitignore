@@ -54,6 +54,7 @@ dkms.conf
 # Misc
 *.png
 !lena_std.png
+!results.png
 *.txt
 
 # Executable
