@@ -1,0 +1,11 @@
+{
+	"files.associations": {
+		"png.h": "c",
+		"array": "cpp",
+		"string": "cpp",
+		"string_view": "cpp",
+		"arg.h": "c",
+		"stdint.h": "c",
+		"filehandler.h": "c"
+	}
+}

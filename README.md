@@ -9,9 +9,9 @@ This application is capable of:
 - Converting input image to gray scale (_with variable bit depth_);
 - Image resizing (_Nearest Neighbor image scaling algorithm_);
 - Application of dithering effect (_Floyd-Steinberg dithering algorithm with slightly changed error calculation_)
-- (**WIP**) Saving raw pixel data in a output _txt_ file. In two mods:
-	- One pixel per byte "normal mode";
-	- Two pixels per byte "packed mode" (_this mode is mostly used for displays with drivers such as SSD1322_); __!!! This mode can only be used if color depth is less than 16 !!!__
+- Saving raw pixel data as an ASCII in the for of C header file. There two modes available:
+	- One pixel per byte "normal mode" (_default_);
+	- Two pixels per byte "packed mode" (_this mode is mostly used for displays with drivers such as SSD1322_);
 
 ## How it works
 
@@ -20,6 +20,7 @@ Image modification pipeline has following stages is this order:
 - Convertion to gray scale (_with selected number of shades of gray_)
 - Image resizing (_optional_)
 - Ditthering (_optional_)
+- Color inversion (_optional_)
 
 ## How to use
 Usage: `imgConv [OPTINS]`
@@ -31,6 +32,7 @@ Options:
 - `-s`    &emsp;-    &emsp;Image scale (-s _width height_) (-s _number_)
 - `-p`    &emsp;-    &emsp;Pack two pixels in one byte (only if gray <= 16)
 - `-d`    &emsp;-    &emsp;Apply dithering to the image
+- `-n`    &emsp;-    &emsp;Invert image colors
 - `-v`    &emsp;-    &emsp;Save result as a png image
 - `-h`    &emsp;-    &emsp;Help
 
@@ -52,5 +54,10 @@ Resize image to become square:
 
 Apply ditthering and save result as an image:
 ```shell
-./imgConv -i lena_std.png -o <output file name> -g 255 -d -v
+./imgConv -i lena_std.png -o <output file name> -g 255 -dv
+```
+
+Apply ditthering, invert color and save result as an image:
+```shell
+./imgConv -i lena_std.png -o <output file name> -g 255 -dvn
 ```

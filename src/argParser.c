@@ -1,16 +1,18 @@
 #include "argParser.h"
 
-static struct args *arg;
+#define OUTPUT_FILE_EXTENTION_SIZE	(5U)
 
 static void print_help(void);
 
-struct args *ap_init(int argc, char **argv)
+args *ap_init(int argc, char **argv)
 {
-	arg = malloc(sizeof(struct args));
+	args *arg = (args *)malloc(sizeof(args));
+	arg->input_path = NULL;
+	arg->output_path = NULL;
 	arg->flags = 0;
 	int opt;
 
-	while((opt = getopt(argc, argv, "pvdhg:s:i:o:")) != -1) {
+	while((opt = getopt(argc, argv, "pvdhng:s:i:o:")) != -1) {
 		switch(opt) {
 		case 'p':
 			arg->flags |= ARG_PACKED;
@@ -21,27 +23,31 @@ struct args *ap_init(int argc, char **argv)
 		case 'd':
 			arg->flags |= ARG_DITHERING;
 			break;
+		case 'n':
+			arg->flags |= ARG_INVERT;
+			break;
 		case 'g':
-			arg->n_shades = atoi(optarg);
-			if(arg->n_shades < 2)
-				arg->n_shades = 2;
+			arg->grayscale = atoi(optarg);
+			if(arg->grayscale < 2)
+				arg->grayscale = 2;
 			break;
 		case 's':
-			arg->flags |= ARG_SCALE;
-			arg->w_scale = atoi(optarg);
+			arg->flags |= ARG_RESCALE;
+			arg->width = atoi(optarg);
 			if(!(*argv[optind] == '-')) {
-				arg->h_scale = atoi(argv[optind++]);
+				arg->height = atoi(argv[optind++]);
 			} else {
 				/* If only one side of image size is set. Make image square */
-				arg->h_scale = arg->w_scale;
+				arg->height = arg->width;
 			}
 			break;
 		case 'i':
-			arg->input_path = malloc(sizeof(char) * strlen(optarg) + 1);
+			arg->input_path = (char *)malloc(sizeof(char) * strlen(optarg) + 1);
 			strcpy(arg->input_path, optarg);
 			break;
 		case 'o':
-			arg->output_path = malloc(sizeof(char) * strlen(optarg) + 1);
+			arg->output_path = (char *)malloc(sizeof(char) * strlen(optarg) + 
+											  OUTPUT_FILE_EXTENTION_SIZE);
 			strcpy(arg->output_path, optarg);
 			break;
 		case 'h':
@@ -67,27 +73,31 @@ struct args *ap_init(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
+	if ((arg->flags & ARG_PACKED) && (arg->grayscale > 16)) {
+		arg->grayscale = 16;
+	}
+
 	return arg;
 }
 
-void ap_deinit()
+void ap_deinit(args *arg)
 {
-	if(arg != NULL) {
-		free(arg->input_path);
-		free(arg->output_path);
-		free(arg);
-	}
+	if (arg == NULL) return;
+	free(arg->input_path);
+	free(arg->output_path);
+	free(arg);
 }
 
 static void print_help(void)
 {
-	puts("image converter:\n\
+	puts("image converter for OLED displays:\n\
 	-i : Path to input image\n\
 	-o : Path to output file\n\
 	-g : Number of shades of gray\n\
 	-s : Image scale [width height]\n\
 	-p : Pack two pixels in one byte (only if gray <= 16)\n\
 	-d : Apply dithering to the image\n\
+	-n : Invert image colors\n\
 	-v : Save converted png image\n\
 	-h : Help");
 }
