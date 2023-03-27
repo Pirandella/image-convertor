@@ -14,7 +14,6 @@ typedef enum {
 typedef struct {
 	size_t width;
 	size_t height;
-	size_t capacity;
 	COLOR_TYPE bytes_per_pixel;
 	uint8_t **data;
 } image_t;
