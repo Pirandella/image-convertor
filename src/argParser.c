@@ -34,7 +34,7 @@ args *ap_init(int argc, char **argv)
 		case 's':
 			arg->flags |= ARG_RESCALE;
 			arg->width = atoi(optarg);
-			if(!(*argv[optind] == '-')) {
+			if((optind != argc) && (*argv[optind] != '-')) {
 				arg->height = atoi(argv[optind++]);
 			} else {
 				/* If only one side of image size is set. Make image square */
