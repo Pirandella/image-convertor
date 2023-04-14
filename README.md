@@ -10,8 +10,8 @@ This application is capable of:
 - Image resizing (_Nearest Neighbor image scaling algorithm_);
 - Application of dithering effect (_Floyd-Steinberg dithering algorithm with slightly changed error calculation_)
 - Saving raw pixel data as an ASCII in the for of C header file. There two modes available:
-	- One pixel per byte "normal mode" (_default_);
-	- Two pixels per byte "packed mode" (_this mode is mostly used for displays with drivers such as SSD1322_);
+	- SSD1306 frame buffer format (_Eight vertical pixels per byte B&W_);
+	- SSD1322 frame buffer format (_Two pixels per byte "packed mode" 4-bit grayscale_);
 
 ## How it works
 
